@@ -1,2 +1,800 @@
-# routine-tracker
-my-routine-tracker
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a//dev/null b/index.html
+index 0000000000000000000000000000000000000000..9dc7f09416c6bb16121cdce2d9f509b5c3192e70 100644
+--- a//dev/null
++++ b/index.html
+@@ -0,0 +1,791 @@
++<!DOCTYPE HTML>
++<html lang="ko">
++<head>
++  <meta charset="UTF-8">
++  <title>🚀 목표 & 수익 트래커</title>
++  <meta name="viewport" content="width=device-width, initial-scale=1.0">
++  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
++  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
++  <style>
++    body {
++      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
++      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
++      min-height: 100vh;
++      padding: 20px;
++      color: #2d3436;
++      margin: 0;
++    }
++    h1 {
++      text-align: center;
++      color: white;
++      margin-bottom: 30px;
++      font-size: 2.5em;
++      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
++      animation: fadeInDown 1s ease-out;
++    }
++    @keyframes fadeInDown {
++      from { opacity: 0; transform: translateY(-30px); }
++      to { opacity: 1; transform: translateY(0); }
++    }
++    @keyframes slideInUp {
++      from { opacity: 0; transform: translateY(30px); }
++      to { opacity: 1; transform: translateY(0); }
++    }
++    .section {
++      max-width: 650px;
++      margin: 20px auto;
++      background: rgba(255,255,255,0.95);
++      backdrop-filter: blur(10px);
++      padding: 30px;
++      border-radius: 20px;
++      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
++      border: 1px solid rgba(255,255,255,0.18);
++      animation: slideInUp 0.8s ease-out;
++    }
++    .date-display {
++      text-align: center;
++      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
++      color: white;
++      padding: 12px 20px;
++      border-radius: 15px;
++      margin-bottom: 25px;
++      font-size: 1.2em;
++      font-weight: bold;
++      box-shadow: 0 4px 15px rgba(108,92,231,0.3);
++    }
++    .today-status {
++      text-align: center;
++      padding: 15px;
++      border-radius: 10px;
++      margin-bottom: 20px;
++      font-weight: bold;
++      font-size: 1.1em;
++    }
++    .status-recorded {
++      background: linear-gradient(135deg, #00b894, #55efc4);
++      color: white;
++      box-shadow: 0 4px 15px rgba(0,184,148,0.3);
++    }
++    .status-not-recorded {
++      background: linear-gradient(135deg, #fdcb6e, #f39c12);
++      color: white;
++      box-shadow: 0 4px 15px rgba(253,203,110,0.3);
++    }
++    label {
++      font-weight: bold;
++      display: block;
++      margin-bottom: 8px;
++      color: #2c3e50;
++      font-size: 1.1em;
++    }
++    input {
++      width: 100%;
++      padding: 12px 16px;
++      margin-bottom: 20px;
++      border: 2px solid #e17055;
++      border-radius: 12px;
++      font-size: 16px;
++      box-sizing: border-box;
++      transition: all 0.3s ease;
++      background: rgba(255,255,255,0.9);
++    }
++    input:focus {
++      outline: none;
++      border-color: #00b894;
++      box-shadow: 0 0 0 3px rgba(0,184,148,0.1);
++      transform: translateY(-2px);
++    }
++    input:hover {
++      border-color: #00cec9;
++    }
++    .progress-container {
++      background: linear-gradient(90deg, #dfe6e9, #b2bec3);
++      height: 30px;
++      border-radius: 15px;
++      margin-bottom: 25px;
++      overflow: hidden;
++      position: relative;
++      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
++    }
++    .progress-bar {
++      height: 100%;
++      width: 0%;
++      background: linear-gradient(135deg, #00b894, #00cec9, #55efc4);
++      color: white;
++      text-align: center;
++      line-height: 30px;
++      font-weight: bold;
++      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
++      position: absolute;
++      top: 0;
++      left: 0;
++      border-radius: 15px;
++      box-shadow: 0 2px 8px rgba(0,184,148,0.3);
++    }
++    .progress-text {
++      position: absolute;
++      top: 0;
++      left: 0;
++      right: 0;
++      height: 100%;
++      line-height: 30px;
++      text-align: center;
++      font-weight: bold;
++      color: #2d3436;
++      z-index: 2;
++      text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
++    }
++    .summary {
++      margin-top: 25px;
++      padding: 20px;
++      font-size: 16px;
++      color: #2c3e50;
++      text-align: center;
++      background: linear-gradient(135deg, #a8edea, #fed6e3);
++      border-radius: 15px;
++      border: none;
++      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
++      font-weight: 600;
++      animation: pulse 2s infinite;
++    }
++    @keyframes pulse {
++      0% { transform: scale(1); }
++      50% { transform: scale(1.02); }
++      100% { transform: scale(1); }
++    }
++    .chart-container {
++      position: relative;
++      height: 400px;
++      width: 100%;
++      margin-top: 20px;
++    }
++    .button-group {
++      display: flex;
++      flex-direction: column;
++      align-items: center;
++      gap: 12px;
++      margin: 30px 0;
++    }
++    .pretty-button {
++      width: 66%;
++      padding: 15px 20px;
++      font-size: 17px;
++      border: none;
++      border-radius: 25px;
++      background: linear-gradient(135deg, #ff7675, #fd79a8, #fdcb6e);
++      color: white;
++      font-weight: bold;
++      cursor: pointer;
++      box-shadow: 0 6px 20px rgba(255,118,117,0.4);
++      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
++      text-transform: uppercase;
++      letter-spacing: 1px;
++      position: relative;
++      overflow: hidden;
++      text-decoration: none;
++      display: inline-block;
++      text-align: center;
++    }
++    .pretty-button::before {
++      content: '';
++      position: absolute;
++      top: 0;
++      left: -100%;
++      width: 100%;
++      height: 100%;
++      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
++      transition: left 0.5s;
++    }
++    .pretty-button:hover::before {
++      left: 100%;
++    }
++    .pretty-button:hover {
++      transform: translateY(-3px) scale(1.05);
++      box-shadow: 0 10px 25px rgba(255,118,117,0.6);
++    }
++    .pretty-button:active {
++      transform: translateY(-1px) scale(1.02);
++    }
++    .button-heyseller {
++      background: linear-gradient(135deg, #74b9ff, #0984e3, #00cec9) !important;
++      box-shadow: 0 6px 20px rgba(116,185,255,0.4) !important;
++    }
++    .button-heyseller:hover {
++      box-shadow: 0 10px 25px rgba(116,185,255,0.6) !important;
++    }
++    .button-reset {
++      background: linear-gradient(135deg, #e17055, #f39c12) !important;
++      box-shadow: 0 6px 20px rgba(225,112,85,0.4) !important;
++    }
++    .button-reset:hover {
++      box-shadow: 0 10px 25px rgba(225,112,85,0.6) !important;
++    }
++    .button-disabled {
++      background: linear-gradient(135deg, #b2bec3, #636e72) !important;
++      cursor: not-allowed !important;
++      box-shadow: none !important;
++    }
++    .button-disabled:hover {
++      transform: none !important;
++      box-shadow: none !important;
++    }
++    .history-section {
++      margin-top: 20px;
++      max-height: 300px;
++      overflow-y: auto;
++      border: 1px solid #ddd;
++      border-radius: 10px;
++      padding: 15px;
++      background: rgba(255,255,255,0.5);
++    }
++    .history-item {
++      display: flex;
++      justify-content: space-between;
++      align-items: center;
++      padding: 10px;
++      margin-bottom: 8px;
++      background: white;
++      border-radius: 8px;
++      border-left: 4px solid #00b894;
++      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
++    }
++    .history-date {
++      font-weight: bold;
++      color: #2c3e50;
++    }
++    .history-data {
++      font-size: 0.9em;
++      color: #636e72;
++    }
++    @media (max-width: 600px) {
++      .pretty-button {
++        width: 90%;
++      }
++      .history-item {
++        flex-direction: column;
++        align-items: flex-start;
++        gap: 5px;
++      }
++    }
++  </style>
++</head>
++<body>
++
++<h1>🚀 목표 & 수익 트래커 💎</h1>
++
++<div class="section" id="mainSection">
++  <div class="date-display" id="dateDisplay">
++    📅 오늘: 2025년 6월 27일 (금)
++  </div>
++  
++  <div class="today-status" id="todayStatus">
++    📝 오늘의 기록을 입력해주세요
++  </div>
++
++  <label>⚡ 오늘 AI 소싱 수 (목표: 150개)</label>
++  <input type="number" id="aiInput" placeholder="오늘 AI 소싱 수 입력" min="0">
++  <div class="progress-container">
++    <div class="progress-bar" id="aiBar"></div>
++    <div class="progress-text" id="aiText">0%</div>
++  </div>
++
++  <label>📦 오늘 헤이셀러 업로드 수 (일일 목표: 100개)</label>
++  <input type="number" id="uploadInput" placeholder="오늘 업로드 수 입력" min="0">
++  <div class="progress-container">
++    <div class="progress-bar" id="uploadDayBar"></div>
++    <div class="progress-text" id="uploadDayText">0%</div>
++  </div>
++
++  <label>🎯 누적 업로드 목표 수 (현재 목표)</label>
++  <input type="number" id="uploadGoalInput" value="10000" min="1" max="100000" step="100" placeholder="예: 10000">
++  <div class="progress-container">
++    <div class="progress-bar" id="uploadTotalBar"></div>
++    <div class="progress-text" id="uploadTotalText">0%</div>
++  </div>
++
++  <label>💸 오늘 총 주문 금액 (만원) - 0원도 기록 가능!</label>
++  <input type="number" id="orderInput" placeholder="예: 230 (230만원, 없으면 0 입력)" min="0" step="0.1">
++
++  <label>💰 수익률 (%)</label>
++  <input type="number" id="profitRateInput" placeholder="예: 25" value="25" min="0" max="100" step="0.1">
++
++  <div class="button-group">
++    <button class="pretty-button" id="saveButton" onclick="submitData()">✅ 오늘 기록 저장</button>
++    <button class="pretty-button" id="updateButton" onclick="updateTodayData()" style="display: none;">✏️ 오늘 기록 수정</button>
++    <a href="https://www.heyseller.kr/" target="_blank" class="pretty-button button-heyseller">🛒 헤이셀러 바로가기</a>
++    <button class="pretty-button" onclick="downloadPDF()">📥 PDF 저장</button>
++    <button class="pretty-button button-reset" onclick="resetData()">🗑️ 데이터 초기화</button>
++  </div>
++
++  <div class="summary" id="summaryText">📦 총 누적 업로드: 0개 / 💰 누적 주문금액: 0원 / 💸 예상 수익: 0원</div>
++
++  <div class="history-section">
++    <h3 style="margin-top: 0; color: #2c3e50;">📊 최근 기록 (최대 7일)</h3>
++    <div id="historyList">
++      기록이 없습니다.
++    </div>
++  </div>
++</div>
++
++<div class="section">
++  <div class="chart-container">
++    <canvas id="dataChart"></canvas>
++  </div>
++</div>
++
++<script>
++  // DOM 요소들
++  const aiBar = document.getElementById("aiBar");
++  const aiText = document.getElementById("aiText");
++  const uploadDayBar = document.getElementById("uploadDayBar");
++  const uploadDayText = document.getElementById("uploadDayText");
++  const uploadTotalBar = document.getElementById("uploadTotalBar");
++  const uploadTotalText = document.getElementById("uploadTotalText");
++  const summaryText = document.getElementById("summaryText");
++  const profitInput = document.getElementById("profitRateInput");
++  const uploadGoalInput = document.getElementById("uploadGoalInput");
++  const todayStatus = document.getElementById("todayStatus");
++  const saveButton = document.getElementById("saveButton");
++  const updateButton = document.getElementById("updateButton");
++  const dateDisplay = document.getElementById("dateDisplay");
++  const historyList = document.getElementById("historyList");
++
++  // 설정 값들
++  const aiGoal = 150;
++  const uploadDayGoal = 100;
++  
++  // 데이터 변수들
++  let totalUpload = 0;
++  let totalOrder = 0;
++  let log = [];
++  let myChart = null;
++  let todayRecorded = false;
++
++  // 오늘 날짜 가져오기
++  function getTodayString() {
++    return new Date().toLocaleDateString('ko-KR');
++  }
++
++  // 날짜 표시 업데이트
++  function updateDateDisplay() {
++    const today = new Date();
++    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
++    const weekday = weekdays[today.getDay()];
++    const dateStr = `📅 오늘: ${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일 (${weekday})`;
++    dateDisplay.textContent = dateStr;
++  }
++
++  // 데이터 저장/로드 (메모리 사용)
++  function loadData() {
++    if (window.savedData) {
++      log = JSON.parse(window.savedData);
++    } else {
++      log = [];
++    }
++  }
++
++  function saveData() {
++    window.savedData = JSON.stringify(log);
++  }
++
++  // 총합 계산
++  function calculateTotals() {
++    totalUpload = log.reduce((sum, entry) => sum + (entry.upload || 0), 0);
++    totalOrder = log.reduce((sum, entry) => sum + (entry.order || 0), 0);
++  }
++
++  // 오늘 기록 상태 확인
++  function checkTodayStatus() {
++    const today = getTodayString();
++    const todayData = log.find(entry => entry.date === today);
++    todayRecorded = !!todayData;
++    
++    if (todayRecorded) {
++      todayStatus.className = "today-status status-recorded";
++      todayStatus.textContent = "✅ 오늘 기록이 저장되어 있습니다";
++      saveButton.style.display = "none";
++      updateButton.style.display = "inline-block";
++      
++      // 기존 데이터로 입력 필드 채우기
++      document.getElementById("aiInput").value = todayData.ai || 0;
++      document.getElementById("uploadInput").value = todayData.upload || 0;
++      document.getElementById("orderInput").value = todayData.order ? (todayData.order / 10000) : 0;
++    } else {
++      todayStatus.className = "today-status status-not-recorded";
++      todayStatus.textContent = "📝 오늘의 기록을 입력해주세요";
++      saveButton.style.display = "inline-block";
++      updateButton.style.display = "none";
++    }
++  }
++
++  // 최근 기록 표시
++  function updateHistoryDisplay() {
++    if (log.length === 0) {
++      historyList.innerHTML = '<div style="text-align: center; color: #636e72;">기록이 없습니다.</div>';
++      return;
++    }
++
++    // 최근 7일 기록만 표시
++    const recentLog = log.slice(-7).reverse();
++    const historyHTML = recentLog.map(entry => {
++      const orderAmount = entry.order ? (entry.order / 10000).toLocaleString() + '만원' : '0원';
++      return `
++        <div class="history-item">
++          <div class="history-date">${entry.date}</div>
++          <div class="history-data">
++            AI: ${entry.ai || 0}개 | 업로드: ${entry.upload || 0}개 | 주문: ${orderAmount}
++          </div>
++        </div>
++      `;
++    }).join('');
++    
++    historyList.innerHTML = historyHTML;
++  }
++
++  // 진행률 바 업데이트
++  function updateBars() {
++    const today = getTodayString();
++    const todayData = log.find(entry => entry.date === today);
++    
++    const aiToday = todayData ? todayData.ai : 0;
++    const uploadToday = todayData ? todayData.upload : 0;
++    
++    // AI 소싱 진행률
++    const aiPercent = Math.min(100, Math.round((aiToday / aiGoal) * 100));
++    aiBar.style.width = aiPercent + "%";
++    aiText.textContent = `${aiPercent}% (${aiToday}/${aiGoal})`;
++    
++    // 일일 업로드 진행률
++    const uploadDayPercent = Math.min(100, Math.round((uploadToday / uploadDayGoal) * 100));
++    uploadDayBar.style.width = uploadDayPercent + "%";
++    uploadDayText.textContent = `${uploadDayPercent}% (${uploadToday}/${uploadDayGoal})`;
++    
++    // 총 업로드 진행률
++    const uploadTotalGoal = parseInt(uploadGoalInput.value) || 10000;
++    const uploadTotalPercent = Math.min(100, Math.round((totalUpload / uploadTotalGoal) * 100));
++    uploadTotalBar.style.width = uploadTotalPercent + "%";
++    uploadTotalText.textContent = `${uploadTotalPercent}% (${totalUpload}/${uploadTotalGoal.toLocaleString()})`;
++  }
++
++  // 요약 정보 업데이트
++  function updateSummary() {
++    const rate = parseFloat(profitInput.value) || 25;
++    const profit = Math.round(totalOrder * (rate / 100));
++    
++    // 금액 포맷팅 함수
++    function formatMoney(amount) {
++      if (amount >= 100000000) { // 1억 이상
++        return (amount / 100000000).toFixed(1) + '억원';
++      } else if (amount >= 10000) { // 1만원 이상
++        return (amount / 10000).toLocaleString() + '만원';
++      } else {
++        return amount.toLocaleString() + '원';
++      }
++    }
++    
++    summaryText.textContent = 
++      `📦 총 누적 업로드: ${totalUpload.toLocaleString()}개 / ` +
++      `💰 누적 주문금액: ${formatMoney(totalOrder)} / ` +
++      `💸 예상 수익 (${rate}%): ${formatMoney(profit)}`;
++  }
++
++  // 전체 디스플레이 업데이트
++  function updateDisplay() {
++    updateBars();
++    updateSummary();
++    updateHistoryDisplay();
++    checkTodayStatus();
++  }
++
++  // 데이터 제출 (새로 저장)
++  function submitData() {
++    const today = getTodayString();
++    const existingData = log.find(entry => entry.date === today);
++    
++    if (existingData) {
++      alert("오늘 데이터가 이미 저장되어 있습니다. 수정 버튼을 사용해주세요.");
++      return;
++    }
++
++    const aiInput = document.getElementById("aiInput");
++    const uploadInput = document.getElementById("uploadInput");
++    const orderInput = document.getElementById("orderInput");
++    
++    const aiVal = aiInput.value === "" ? 0 : parseInt(aiInput.value) || 0;
++    const uploadVal = uploadInput.value === "" ? 0 : parseInt(uploadInput.value) || 0;
++    const orderVal = orderInput.value === "" ? 0 : (parseFloat(orderInput.value) || 0) * 10000;
++
++    if (aiInput.value === "" && uploadInput.value === "" && orderInput.value === "") {
++      alert("최소한 하나의 항목은 입력해주세요.");
++      return;
++    }
++
++    const newEntry = { 
++      date: today, 
++      ai: aiVal, 
++      upload: uploadVal, 
++      order: orderVal 
++    };
++
++    log.push(newEntry);
++    log.sort((a, b) => new Date(a.date) - new Date(b.date));
++
++    saveData();
++    calculateTotals();
++    updateDisplay();
++    drawChart();
++    
++    alert("오늘 데이터가 저장되었습니다! 내일 새로운 기록을 입력할 수 있습니다.");
++  }
++
++  // 오늘 데이터 수정
++  function updateTodayData() {
++    const today = getTodayString();
++    const aiInput = document.getElementById("aiInput");
++    const uploadInput = document.getElementById("uploadInput");
++    const orderInput = document.getElementById("orderInput");
++    
++    const aiVal = aiInput.value === "" ? 0 : parseInt(aiInput.value) || 0;
++    const uploadVal = uploadInput.value === "" ? 0 : parseInt(uploadInput.value) || 0;
++    const orderVal = orderInput.value === "" ? 0 : (parseFloat(orderInput.value) || 0) * 10000;
++
++    const existingIndex = log.findIndex(entry => entry.date === today);
++    if (existingIndex >= 0) {
++      log[existingIndex] = { 
++        date: today, 
++        ai: aiVal, 
++        upload: uploadVal, 
++        order: orderVal 
++      };
++
++      saveData();
++      calculateTotals();
++      updateDisplay();
++      drawChart();
++      
++      alert("오늘 데이터가 수정되었습니다!");
++    }
++  }
++
++  // 차트 그리기
++  function drawChart() {
++    const ctx = document.getElementById("dataChart").getContext("2d");
++    
++    if (log.length === 0) {
++      if (myChart) {
++        myChart.destroy();
++        myChart = null;
++      }
++      ctx.fillStyle = '#888';
++      ctx.font = '18px Arial';
++      ctx.textAlign = 'center';
++      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
++      ctx.fillText('데이터를 입력하면 차트가 표시됩니다', ctx.canvas.width/2, ctx.canvas.height/2);
++      return;
++    }
++
++    const labels = log.map(entry => entry.date);
++    const uploadData = [];
++    const orderData = [];
++    
++    let cumulativeUpload = 0;
++    let cumulativeOrder = 0;
++    
++    log.forEach(entry => {
++      cumulativeUpload += entry.upload || 0;
++      cumulativeOrder += entry.order || 0;
++      uploadData.push(cumulativeUpload);
++      orderData.push(cumulativeOrder);
++    });
++
++    if (myChart) {
++      myChart.destroy();
++    }
++
++    myChart = new Chart(ctx, {
++      type: 'line',
++      data: {
++        labels: labels,
++        datasets: [
++          {
++            label: '누적 업로드 수',
++            data: uploadData,
++            yAxisID: 'y',
++            borderColor: '#00b894',
++            backgroundColor: 'rgba(0,184,148,0.1)',
++            tension: 0.3,
++            fill: true,
++            pointBackgroundColor: '#00b894',
++            pointBorderColor: '#fff',
++            pointBorderWidth: 2,
++            pointRadius: 5
++          },
++          {
++            label: '누적 주문 금액 (원)',
++            data: orderData,
++            yAxisID: 'y1',
++            borderColor: '#0984e3',
++            backgroundColor: 'rgba(9,132,227,0.1)',
++            tension: 0.3,
++            fill: true,
++            pointBackgroundColor: '#0984e3',
++            pointBorderColor: '#fff',
++            pointBorderWidth: 2,
++            pointRadius: 5
++          }
++        ]
++      },
++      options: {
++        responsive: true,
++        maintainAspectRatio: false,
++        interaction: {
++          intersect: false,
++          mode: 'index'
++        },
++        scales: {
++          y: {
++            type: 'linear',
++            position: 'left',
++            title: {
++              display: true,
++              text: '업로드 수',
++              color: '#00b894',
++              font: {
++                size: 14,
++                weight: 'bold'
++              }
++            },
++            beginAtZero: true,
++            grid: {
++              color: 'rgba(0,184,148,0.1)'
++            },
++            ticks: {
++              color: '#00b894'
++            }
++          },
++          y1: {
++            type: 'linear',
++            position: 'right',
++            title: {
++              display: true,
++              text: '금액 (원)',
++              color: '#0984e3',
++              font: {
++                size: 14,
++                weight: 'bold'
++              }
++            },
++            grid: {
++              drawOnChartArea: false,
++              color: 'rgba(9,132,227,0.1)'
++            },
++            beginAtZero: true,
++            ticks: {
++              color: '#0984e3',
++              callback: function(value) {
++                if (value >= 100000000) {
++                  return (value / 100000000).toFixed(1) + '억원';
++                } else if (value >= 10000) {
++                  return (value / 10000).toLocaleString() + '만원';
++                } else {
++                  return value.toLocaleString() + '원';
++                }
++              }
++            }
++          },
++          x: {
++            grid: {
++              color: 'rgba(0,0,0,0.05)'
++            },
++            ticks: {
++              color: '#666'
++            }
++          }
++        },
++        plugins: {
++          legend: {
++            display: true,
++            position: 'top',
++            labels: {
++              usePointStyle: true,
++              padding: 20,
++              font: {
++                size: 13,
++                weight: 'bold'
++              }
++            }
++          },
++          tooltip: {
++            backgroundColor: 'rgba(0,0,0,0.8)',
++            titleColor: '#fff',
++            bodyColor: '#fff',
++            cornerRadius: 10,
++            displayColors: true,
++            callbacks: {
++              label: function(context) {
++                let label = context.dataset.label || '';
++                if (label) {
++                  label += ': ';
++                }
++                if (context.dataset.label.includes('주문 금액')) {
++                  const value = context.parsed.y;
++                  if (value >= 100000000) {
++                    label += (value / 100000000).toFixed(1) + '억원';
++                  } else if (value >= 10000) {
++                    label += (value / 10000).toLocaleString() + '만원';
++                  } else {
++                    label += value.toLocaleString() + '원';
++                  }
++                } else {
++                  label += context.parsed.y.toLocaleString() + '개';
++                }
++                return label;
++              }
++            }
++          }
++        }
++      }
++    });
++  }
++
++  // PDF 저장
++  function downloadPDF() {
++    const element = document.getElementById('mainSection');
++    const opt = {
++      margin: 0.5,
++      filename: 'routine-tracker.pdf',
++      html2canvas: { scale: 2 },
++      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
++    };
++    html2pdf().set(opt).from(element).save();
++  }
++
++  // 데이터 초기화
++  function resetData() {
++    if (confirm('모든 데이터를 삭제하시겠습니까?')) {
++      log = [];
++      saveData();
++      calculateTotals();
++      updateDisplay();
++      drawChart();
++      alert('데이터가 초기화되었습니다.');
++    }
++  }
++
++  // 초기화 함수
++  function init() {
++    updateDateDisplay();
++    loadData();
++    calculateTotals();
++    updateDisplay();
++    drawChart();
++  }
++
++  profitInput.addEventListener('change', updateSummary);
++  uploadGoalInput.addEventListener('change', updateBars);
++
++  window.onload = init;
++</script>
++
++</body>
++</html>
+ 
+EOF
+)
